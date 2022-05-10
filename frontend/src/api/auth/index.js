@@ -4,14 +4,14 @@ export default {
     register (requestData) {
         return request({
             method: 'POST',
-            url: '/api/auth/registration',
+            url: '/api/v1/auth/registration',
             data: requestData
         })
     },
     login(requestData) {
         return request({
             method: 'POST',
-            url: '/api/auth/login',
+            url: '/api/v1/auth/login',
             data: requestData
         })
     }
