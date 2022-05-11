@@ -14,5 +14,11 @@ export default {
             url: '/api/v1/auth/login',
             data: requestData
         })
+    },
+    getUser() {
+        return request({
+            method: 'GET',
+            url: '/api/v1/auth/user',
+        })
     }
 }

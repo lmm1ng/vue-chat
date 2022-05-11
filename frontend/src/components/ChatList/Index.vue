@@ -1,7 +1,7 @@
 <template>
   <section class="chat-list-wrapper">
     <el-dialog title="Chat creating" v-model="isChatCreatingModal">
-      <el-form v-model="createChatForm">
+      <el-form ref="formRef" :model="createChatForm" label-width="100px">
         <el-form-item label="Type" prop="type" :rules="required">
           <el-radio-group v-model="createChatForm.type">
             <el-radio label="dialog"/>
@@ -20,7 +20,17 @@
             placeholder="Enter a nickname"
             remote
             :remote-method="getUsers"
-          ></el-select>
+          >
+            <el-option
+                v-for="item in searchMembers"
+                :key="item.id"
+                :label="item.nickname"
+                :value="item.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="onCreateChat">Submit</el-button>
         </el-form-item>
       </el-form>
     </el-dialog>
@@ -28,29 +38,74 @@
       <el-input v-model="searchInput"/>
       <el-button type="primary" :icon="Edit" circle @click="isChatCreatingModal = true"/>
     </div>
+    <div class="chat-list-wrapper__chats">
+      <chat-list-item
+          v-for="chat in chats"
+          :key="chat.id"
+          :is-active="chat.id === activeChatId"
+          :last-message="getLastChatMessage(chat)"
+          :avatar="chat.avatar"
+          :name="getChatName(chat)"
+          @click="setActiveChat(chat.id)"
+      />
+    </div>
   </section>
 </template>
 
 <script setup>
-import {ref, computed} from 'vue'
+import {ref, computed, toRaw, onMounted} from 'vue'
+import ChatListItem from '@/components/ChatList/ChatListItem'
 import {useStore} from 'vuex'
 import {Edit} from '@element-plus/icons-vue'
 import {required} from '@/constants/rules'
 
 const store = useStore()
 
+onMounted(() => {
+  store.dispatch('chat/fetchGetChats')
+})
+
 const searchInput = ref('')
+
 const isChatCreatingModal = ref(false)
+const formRef = ref(null)
 
 const createChatForm = ref({
   type: 'dialog',
   name: '',
   members: []
 })
+const onCreateChat = () => {
+  formRef.value.validate(valid => {
+    if (valid) {
+      store.dispatch('chat/fetchCreateChat', toRaw(createChatForm.value))
+    }
+  })
+}
+
 const isGroup = computed(() => createChatForm.value.type === 'group')
+const searchMembers = computed(() => store.getters["users/getUsersList"])
 
 const getUsers = query => {
-  store.dispatch('users/fetchUsersList', query)
+  return store.dispatch('users/fetchUsersList', query)
+}
+
+const chats = computed(() => store.getters['chat/getUserChats'])
+
+const setActiveChat = chat => store.commit('chat/setActiveChat', chat)
+const activeChatId = computed(() => store.getters['chat/getActiveChat'])
+
+const getChatName = chat => {
+  if (chat.type === 'dialog') {
+    return chat.members[0].nickname
+  } else if (chat.type === 'group') {
+    return chat.name
+  } else {
+    return 'unnamed'
+  }
+}
+const getLastChatMessage = chat => {
+  return chat.messages[0]?.text || ''
 }
 </script>
 
@@ -61,5 +116,8 @@ const getUsers = query => {
 .chat-list-wrapper__filter {
   display: flex;
   gap: 10px;
+}
+.chat-list-wrapper__chats {
+  margin-top: 10px;
 }
 </style>

@@ -21,7 +21,6 @@ class AuthController {
             await user.save()
             res.json({message: 'User created'})
         } catch (e) {
-            console.log(e)
             res.status(500).json({message: 'Server error'})
         }
     }
@@ -37,7 +36,6 @@ class AuthController {
                 return res.status(400).json({message: 'Invalid password'})
             }
             const token = jwt.sign({id: user.id}, config.get('jwtSecret'), {expiresIn: '1h'})
-            console.log(user)
             return res.json({
                 token,
                 user: {
@@ -50,6 +48,21 @@ class AuthController {
         } catch (e) {
             console.log(e)
             res.status(500).json({message: e})
+        }
+    }
+    async getUser(req, res) {
+        try {
+            const dbUser = await User.findOne({_id: req.user.id})
+            res.json({
+                user: {
+                    id: dbUser.id,
+                    email: dbUser.email,
+                    avatar: dbUser.avatar,
+                    chatIds: dbUser.chats
+                }
+            })
+        } catch (e) {
+            res.status(500).json({message: 'Server error'})
         }
     }
 }

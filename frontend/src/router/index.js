@@ -2,11 +2,13 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Main from '@/views/Main'
 import Registration from '@/views/Registration'
 import Login from '@/views/Login'
+import {isAuthorized, beforeAuthPageHook} from '@/router/hooks/auth'
 
 const routes = [
   {
     path: '/registration',
     name: 'Registration',
+    beforeEnter: beforeAuthPageHook,
     component: Registration,
     meta: {
       layout: 'LoginLayout'
@@ -15,6 +17,7 @@ const routes = [
   {
     path: '/login',
     name: 'Login',
+    beforeEnter: beforeAuthPageHook,
     component: Login,
     meta: {
       layout: 'LoginLayout'
@@ -23,6 +26,7 @@ const routes = [
   {
     path: '/',
     name: 'Main',
+    beforeEnter: isAuthorized,
     component: Main,
     meta: {
       layout: 'MainLayout'

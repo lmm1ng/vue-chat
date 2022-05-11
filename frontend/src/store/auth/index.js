@@ -19,8 +19,14 @@ export default {
         fetchLogin ({commit}, requestData) {
             commit('setAuthLoading', true)
             return api.auth.login(requestData).then(response => {
+                commit('setToken', response)
                 commit('setUser', response)
                 commit('setAuthLoading', false)
+            })
+        },
+        fetchUser({commit}) {
+            return api.auth.getUser().then(response => {
+                commit('setUser', response)
             })
         },
         makeLogout({commit}) {
@@ -29,8 +35,10 @@ export default {
     },
     mutations: {
         setUser(state, payload) {
-            Cookies.set('token', payload.token)
             state.user = payload.user
+        },
+        setToken (state, payload) {
+            Cookies.set('token', payload.token)
         },
         setAuthLoading(state, payload) {
             state.isAuthLoading = payload
