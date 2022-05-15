@@ -16,30 +16,54 @@ class ChatController {
                     chat = new Chat({
                         type: req.body.type,
                         name: req.body.name,
-                        members: [req.user.id, ...req.body.members]
+                        members: [req.user.id, ...req.body.members].map(userId => ({
+                            ref: userId,
+                            deviceId: userId === req.user.id ? req.user.deviceId : undefined
+                        })),
+                        createdAt: new Date(),
+                        admin: req.user.id
                     })
                     break
                 case 'dialog':
                     if (req.body.members.length !== 1) {
                         return res.status(400).json({message: 'Only 2 members in dialog'})
                     }
-                    const isDialogExists = await Chat.findOne({members: {$all: [req.user.id, ...req.body.members]}})
-                    if (isDialogExists) {
-                        return res.status(400).json({message: 'Dialog exists'})
-                    }
-                    chat = new Chat({type: req.body.type, members: [req.user.id, ...req.body.members]})
+                    // const isDialogExists = await Chat.findOne({'members.ref': {$all: [req.user.id, ...req.body.members]}})
+                    // if (isDialogExists) {
+                    //     return res.status(400).json({message: 'Dialog exists'})
+                    // }
+                    chat = new Chat({
+                        type: req.body.type,
+                        members: [req.user.id, ...req.body.members].map(userId => ({
+                            ref: userId,
+                            deviceId: userId === req.user.id ? req.user.deviceId : undefined
+                        })),
+                        createdAt: new Date(),
+                        admin: req.user.id
+                    })
                     break
                 default:
                     return res.status(400).json({message: 'Wrong chat type'})
             }
             await chat.save()
-            for (const userId of chat.members) {
-                const dbUser = await User.findOne({_id: userId})
+            for (const user of chat.members) {
+                const dbUser = await User.findOne({_id: user.ref})
                 dbUser.chats.push(chat.id)
                 await dbUser.save()
             }
-            return res.json({message: 'Chat created'})
+            const outChat = await chat.populate('members.ref')
+            return res.json({
+                ...outChat._doc,
+                id: outChat._id,
+                members: outChat.members.map(member => ({
+                    id: member.ref.id,
+                    nickname: member.ref.nickname,
+                    deviceId: member.deviceId
+                })),
+                messages: []
+            })
         } catch (e) {
+            console.log(e)
             return res.status(500).json({message: 'Server error'})
         }
     }
@@ -49,16 +73,24 @@ class ChatController {
             const dbUser = await User.findOne({_id: req.user.id})
             const chats = []
             for (const chat of dbUser.chats) {
-                chats.push(await Chat.findOne({_id: chat}).populate('members').populate('messages'))
+                const dbChat = await Chat.findOne({
+                    _id: chat,
+                    'members.deviceId': req.user.deviceId
+                }).populate('members.ref').populate('messages')
+                if (dbChat) {
+                    chats.push(dbChat)
+                }
             }
+            console.log(chats.map(chat => chat.members))
             return res.json({
                 list: chats.map(chat => ({
                     ...chat._doc,
                     id: chat._id,
                     members: chat.members.map(member => ({
-                        id: member.id,
-                        nickname: member.nickname
-                    })).filter(member => member.id !== req.user.id),
+                        id: member.ref.id,
+                        nickname: member.ref.nickname,
+                        hasKey: member.deviceId !== 'notSelected'
+                    })),
                     messages: chat.messages.map(message => ({
                         id: message._id,
                         chat: message.chat,
@@ -69,6 +101,7 @@ class ChatController {
                 }))
             })
         } catch (e) {
+            console.log(e)
             return res.status(500).json({message: 'Server error'})
         }
     }

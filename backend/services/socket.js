@@ -6,11 +6,7 @@ const Message = require('../models/Message')
 const Chat = require('../models/Chat')
 
 const store = {
-    onlineUsers: new Set()
-}
-
-const getUserIdByToken = socket => {
-    return token = jwt.verify(socket.handshake.headers.cookie.replace('token=', ''), config.get('jwtSecret'))?.id
+    onlineUsers: {}
 }
 
 const initSocket = server => {
@@ -18,29 +14,38 @@ const initSocket = server => {
         allowEIO3: true
     })
     io.use((socket, next) => {
-        const token = socket.handshake.headers.cookie.replace('token=', '')
-        if (jwt.verify(token, config.get('jwtSecret'))) {
-            next()
-        } else {
-            next(new Error('Authentication error'));
+        try {
+            jwt.verify(socket.handshake.headers.cookie.replace('token=', ''), config.get('jwtSecret'))
+            return next()
+        } catch (e) {
+            socket.disconnect()
+            return next(new Error('Authentication error'));
         }
     })
     io.on('connection', async socket => {
-        const userId = getUserIdByToken(socket)
-        store.onlineUsers.add(userId)
-        const dbUser = await User.findOne({_id: userId})
-        for (const chatId of dbUser.chats) {
-            socket.join(`chat:${chatId}`)
+        const {id, deviceId} =  jwt.verify(socket.handshake.headers.cookie.replace('token=', ''), config.get('jwtSecret'))
+        socket.userId = id
+        socket.deviceId = deviceId
+        console.log('connected!')
+        if (!store.onlineUsers[id]) {
+            store.onlineUsers[id] = [deviceId]
+        } else {
+            if (!store.onlineUsers[id].includes(deviceId)) {
+                store.onlineUsers[id].push(deviceId)
+            }
+        }
+        const dbUser = await User.findOne({_id: id}).populate('chats')
+        for (const chat of dbUser.chats) {
+            if (chat.members.find(member => member.ref.toString() === id)?.deviceId === deviceId) {
+                socket.join(`chat:${chat._id}`)
+            }
         }
 
         socket.on('disconnect', () => {
-            const userId = getUserIdByToken(socket)
-            if (store.onlineUsers.has(userId)) {
-                store.onlineUsers.delete(userId)
-            }
+            store.onlineUsers[socket.userId] = store.onlineUsers[socket.userId].filter(device => device !== socket.deviceId)
         })
         socket.on('send message', async data => {
-            const message = new Message(data)
+            const message = new Message({...data, createdAt: new Date()})
             message.save()
             socket.to(`chat:${message.chat}`).emit('receive message', {
                 id: message._id,

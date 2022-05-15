@@ -1,6 +1,6 @@
 <template>
   <section class="chat" v-if="activeChatId">
-    <div class="chat__header">Header</div>
+    <chat-header/>
     <div class="chat__content">
       <div class="chat__content messages">
         <message-comp
@@ -24,8 +24,10 @@
 <script setup>
 import {computed, ref, inject} from 'vue'
 import {useStore} from 'vuex'
+import ChatHeader from '@/components/Chat/Header'
 import MessageComp from '@/components/Chat/Message'
 import {Promotion} from '@element-plus/icons-vue'
+import {cryptMessage} from '@/utils/crypto'
 
 const store = useStore()
 const socket = inject('socket')
@@ -40,9 +42,8 @@ const message = ref('')
 const sendMessage = () => {
   const messageObj = {
     chat: activeChatId.value,
-    text: message.value,
-    from: currentUser.value.id,
-    createdAt: new Date().toISOString()
+    text: cryptMessage(message.value, localStorage.getItem(currentChat.value.id)),
+    from: currentUser.value.id
   }
   socket.emit('send message', messageObj)
   insertMessage(messageObj)
@@ -62,7 +63,7 @@ socket.on('receive message', data => {
   }
 
   &__content {
-    height: calc(100% - 50px - 52px);
+    height: calc(100% - 50px - 62px);
     position: relative;
     bottom: 0;
     overflow: auto;
@@ -83,10 +84,11 @@ socket.on('receive message', data => {
   }
 
   &__inputs {
-    height: 52px;
+    height: 62px;
     display: flex;
     gap: 10px;
     align-items: center;
+    padding-bottom: 10px;
   }
 }
 

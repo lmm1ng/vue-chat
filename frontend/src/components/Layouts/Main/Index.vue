@@ -3,6 +3,7 @@
     <el-container class="main-layout__container">
       <el-header>
         <el-button @click="isDrawer = true"></el-button>
+        <router-link to="/login">ss</router-link>
       </el-header>
       <el-divider style="margin: 0"/>
       <el-container>
@@ -10,8 +11,8 @@
           <chat-list/>
         </el-aside>
         <el-divider v-if="!isMobile" style="height: 100%;" direction="vertical"/>
-        <el-main style="padding: 0 10px;">
-          <chat/>
+        <el-main style="padding: 0;">
+          <router-view/>
         </el-main>
       </el-container>
       <el-drawer v-model="isDrawer" :size="'90%'" direction="ltr" title="Chats">
@@ -23,7 +24,6 @@
 
 <script setup>
 import ChatList from '@/components/ChatList/Index'
-import Chat from '@/components/Chat/Index'
 import {ref, onMounted, onUnmounted, computed} from 'vue'
 
 let windowWidth = ref(window.innerWidth)

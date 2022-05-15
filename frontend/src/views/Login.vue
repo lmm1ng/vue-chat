@@ -39,7 +39,9 @@ const loginForm = ref({
 const onSubmit = () => {
   form.value.validate(valid => {
     if (valid) {
-      store.dispatch('auth/fetchLogin', toRaw(loginForm.value)).then(() => router.push('/'))
+      console.log(toRaw(loginForm.value))
+      store.dispatch('auth/fetchLogin', {...toRaw(loginForm.value), deviceId: localStorage.getItem('deviceId')})
+          .then(() => router.push('/'))
     }
   })
 }
@@ -61,6 +63,7 @@ const toRegistration = () => {
   @media all and (min-width: 1024px) {
     width: 500px;
   }
+
   &__buttons {
     .el-form-item__content {
       display: flex;

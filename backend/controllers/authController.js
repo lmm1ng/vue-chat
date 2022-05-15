@@ -5,13 +5,13 @@ const config = require('config')
 const User = require('../models/User')
 
 class AuthController {
-    async register (req, res) {
+    async register(req, res) {
         try {
             const errors = validationResult(req)
             if (!errors.isEmpty()) {
-                res.status(400).json({ message: 'Incorrect data', errors })
+                res.status(400).json({message: 'Incorrect data', errors})
             }
-            const { email, password, nickname, inviteKey } = req.body
+            const {email, password, nickname, inviteKey} = req.body
             const isExists = await User.findOne({email})
             if (isExists) {
                 return res.status(400).json({message: 'User already exists'})
@@ -24,9 +24,13 @@ class AuthController {
             res.status(500).json({message: 'Server error'})
         }
     }
-    async login (req, res) {
+
+    async login(req, res) {
         try {
-            const {email, password} = req.body
+            const {email, password, deviceId} = req.body
+            if (!deviceId) {
+                return res.status(400).json({message: 'Device id required'})
+            }
             const user = await User.findOne({email})
             if (!user) {
                 return res.status(404).json({message: 'User not found'})
@@ -35,7 +39,7 @@ class AuthController {
             if (!isPasswordValid) {
                 return res.status(400).json({message: 'Invalid password'})
             }
-            const token = jwt.sign({id: user.id}, config.get('jwtSecret'), {expiresIn: '1h'})
+            const token = jwt.sign({id: user.id, deviceId}, config.get('jwtSecret'), {expiresIn: '1h'})
             return res.json({
                 token,
                 user: {
@@ -50,6 +54,7 @@ class AuthController {
             res.status(500).json({message: e})
         }
     }
+
     async getUser(req, res) {
         try {
             const dbUser = await User.findOne({_id: req.user.id})

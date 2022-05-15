@@ -45,7 +45,7 @@
           :is-active="chat.id === activeChatId"
           :last-message="getLastChatMessage(chat)"
           :avatar="chat.avatar"
-          :name="getChatName(chat)"
+          :name="chat.name"
           @click="setActiveChat(chat.id)"
       />
     </div>
@@ -95,15 +95,6 @@ const chats = computed(() => store.getters['chat/getUserChats'])
 const setActiveChat = chat => store.commit('chat/setActiveChat', chat)
 const activeChatId = computed(() => store.getters['chat/getActiveChat'])
 
-const getChatName = chat => {
-  if (chat.type === 'dialog') {
-    return chat.members[0].nickname
-  } else if (chat.type === 'group') {
-    return chat.name
-  } else {
-    return 'unnamed'
-  }
-}
 const getLastChatMessage = chat => {
   return chat.messages[0]?.text || ''
 }
