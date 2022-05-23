@@ -24,5 +24,9 @@ export const cryptMessage = (text, key) => {
 }
 
 export const decryptMessage = (hash, key) => {
-    return CryptoJS.AES.decrypt(hash, key).toString(CryptoJS.enc.Utf8)
+    try {
+        return CryptoJS.AES.decrypt(hash, key).toString(CryptoJS.enc.Utf8)
+    } catch (e) {
+        return 'wrong encryption key'
+    }
 }

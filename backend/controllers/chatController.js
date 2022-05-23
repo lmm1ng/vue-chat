@@ -72,16 +72,15 @@ class ChatController {
         try {
             const dbUser = await User.findOne({_id: req.user.id})
             const chats = []
+            console.log(dbUser.chats)
             for (const chat of dbUser.chats) {
                 const dbChat = await Chat.findOne({
-                    _id: chat,
-                    'members.deviceId': req.user.deviceId
+                    _id: chat
                 }).populate('members.ref').populate('messages')
                 if (dbChat) {
                     chats.push(dbChat)
                 }
             }
-            console.log(chats.map(chat => chat.members))
             return res.json({
                 list: chats.map(chat => ({
                     ...chat._doc,

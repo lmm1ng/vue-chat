@@ -1,13 +1,13 @@
 <template>
-  <section class="chat" v-if="activeChatId">
+  <section class="chat" v-if="activeChat">
     <chat-header/>
     <div class="chat__content">
       <div class="chat__content messages">
         <message-comp
-            v-for="message in currentChat.messages"
+            v-for="message in activeChat.messages"
             :key="message.id"
             :text="message.text"
-            :variant="currentChat.type"
+            :variant="activeChat.type"
             :time="message.createdAt"
             :from="message.from"
         />
@@ -32,24 +32,44 @@ import {cryptMessage} from '@/utils/crypto'
 const store = useStore()
 const socket = inject('socket')
 
-const activeChatId = computed(() => store.getters['chat/getActiveChat'])
-const currentChat = computed(() => store.getters['chat/getUserChats'].find(chat => chat.id === activeChatId.value))
+const activeChat = computed(() => store.getters['chat/getActiveChat'])
 const currentUser = computed(() => store.getters['auth/getUser'])
 const insertMessage = message => store.commit('chat/insertMessage', message)
+
+const setOnlineUsers = data => store.commit('chat/setOnlineUsers', data)
+const addOnlineUser = data => store.commit('chat/addOnlineUser', data)
+const removeOnlineUser = data => store.commit('chat/removeOnlineUser', data)
 
 const message = ref('')
 
 const sendMessage = () => {
   const messageObj = {
-    chat: activeChatId.value,
-    text: cryptMessage(message.value, localStorage.getItem(currentChat.value.id)),
+    chat: activeChat.value.id,
+    text: cryptMessage(message.value, localStorage.getItem(activeChat.value.id)),
     from: currentUser.value.id
   }
   socket.emit('send message', messageObj)
   insertMessage(messageObj)
 }
+
+socket.on('chat online users', data => {
+  setOnlineUsers(data)
+})
+
+socket.on('user joined', data => {
+  addOnlineUser(data)
+})
+
+socket.on('user leaved', data => {
+  removeOnlineUser(data)
+})
+
 socket.on('receive message', data => {
   insertMessage(data)
+})
+
+socket.on('chat online users', data => {
+  console.log(data)
 })
 </script>
 

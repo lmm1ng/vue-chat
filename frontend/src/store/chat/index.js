@@ -5,7 +5,8 @@ export default {
     namespaced: true,
     state: {
         userChats: [],
-        activeChat: null
+        activeChatId: null,
+        onlineUsers: {}
     },
     getters: {
         getUserChats: (state, getters, rootState, rootGetters) => state.userChats.sort((a, b) => new Date(b) - new Date(a)).map(chat => {
@@ -20,7 +21,9 @@ export default {
                 }
             }
         }),
-        getActiveChat: state => state.activeChat
+        getActiveChat: (state, getters) => getters['getUserChats'].find(chat => chat.id === state.activeChatId),
+        getActiveChatId: state => state.activeChatId,
+        isUserOnline: state => (chatId, userId) => state.onlineUsers[chatId].has(userId),
     },
     actions: {
         fetchCreateChat({commit}, requestData) {
@@ -37,11 +40,20 @@ export default {
             state.userChats = payload
         },
         setActiveChat(state, payload) {
-            state.activeChat = payload
+            state.activeChatId = payload
         },
         insertMessage(state, payload) {
             const chat = state.userChats.find(chat => chat.id === payload.chat)
             chat.messages.unshift(payload)
+        },
+        setOnlineUsers(state, payload) {
+            state.onlineUsers[payload.chatId] = new Set(payload.users)
+        },
+        addOnlineUser(state, payload) {
+            state.onlineUsers[payload.chatId].add(payload.userId)
+        },
+        removeOnlineUser(state, payload) {
+            state.onlineUsers[payload.chatId].delete(payload.userId)
         }
     }
 }

@@ -5,10 +5,6 @@ const User = require('../models/User')
 const Message = require('../models/Message')
 const Chat = require('../models/Chat')
 
-const store = {
-    onlineUsers: {}
-}
-
 const initSocket = server => {
     const io = new Server(server, {
         allowEIO3: true
@@ -23,26 +19,33 @@ const initSocket = server => {
         }
     })
     io.on('connection', async socket => {
-        const {id, deviceId} =  jwt.verify(socket.handshake.headers.cookie.replace('token=', ''), config.get('jwtSecret'))
+        const {
+            id,
+            deviceId
+        } = jwt.verify(socket.handshake.headers.cookie.replace('token=', ''), config.get('jwtSecret'))
         socket.userId = id
         socket.deviceId = deviceId
-        console.log('connected!')
-        if (!store.onlineUsers[id]) {
-            store.onlineUsers[id] = [deviceId]
-        } else {
-            if (!store.onlineUsers[id].includes(deviceId)) {
-                store.onlineUsers[id].push(deviceId)
-            }
-        }
+
         const dbUser = await User.findOne({_id: id}).populate('chats')
         for (const chat of dbUser.chats) {
-            if (chat.members.find(member => member.ref.toString() === id)?.deviceId === deviceId) {
-                socket.join(`chat:${chat._id}`)
-            }
+            socket.join(`chat:${chat._id}`)
+            const clientsInRoom = await io.in(`chat:${chat._id}`).fetchSockets()
+            socket.emit('chat online users', {
+                chatId: chat._id,
+                users: clientsInRoom.map(el => el.userId).filter(userId => userId !== socket.userId)
+            })
+            socket.to(`chat:${chat._id}`).emit('user joined', {chatId: chat._id, userId: socket.userId})
         }
 
-        socket.on('disconnect', () => {
-            store.onlineUsers[socket.userId] = store.onlineUsers[socket.userId].filter(device => device !== socket.deviceId)
+        socket.on('disconnecting', () => {
+            [...socket.rooms].forEach(roomId => {
+                if (roomId.includes('chat:')) {
+                    socket.to(roomId).emit('user leaved', {
+                        chatId: roomId.replace('chat:', ''),
+                        userId: socket.userId
+                    })
+                }
+            })
         })
         socket.on('send message', async data => {
             const message = new Message({...data, createdAt: new Date()})

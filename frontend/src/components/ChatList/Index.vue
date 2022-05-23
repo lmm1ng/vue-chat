@@ -93,7 +93,7 @@ const getUsers = query => {
 const chats = computed(() => store.getters['chat/getUserChats'])
 
 const setActiveChat = chat => store.commit('chat/setActiveChat', chat)
-const activeChatId = computed(() => store.getters['chat/getActiveChat'])
+const activeChatId = computed(() => store.getters['chat/getActiveChatId'])
 
 const getLastChatMessage = chat => {
   return chat.messages[0]?.text || ''
