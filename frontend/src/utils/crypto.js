@@ -1,20 +1,19 @@
-import {createDiffieHellman, randomBytes} from 'crypto-browserify'
+import {createDiffieHellman, randomBytes} from 'crypto'
 import CryptoJS from 'crypto-js'
 //
-// export const createDiffie = () => {
-//     const diffie = createDiffieHellman(2048)
-//     return {
-//         prime: diffie.getPrime('hex'),
-//         gen: diffie.getGenerator('hex'),
-//         pub: diffie.generateKeys('hex')
-//     }
-// }
-//
-// export const createDiffieByPub = (prime, gen) => {
-//     const diffie = createDiffieHellman(prime, 'hex', gen, 'hex')
-//     return diffie.generateKeys('hex')
-// }
-//
+export const createDiffie = () => {
+    console.log('hello from diffie')
+    return createDiffieHellman(32)
+    // return {
+    //     prime: diffie.getPrime('hex'),
+    //     gen: diffie.getGenerator('hex'),
+    //     pub: diffie.generateKeys('hex')
+    // }
+}
+
+export const createDiffieByPub = (prime, gen) => {
+    return createDiffieHellman(prime, gen)
+}
 
 export const generateChatKey = () => {
     return randomBytes(2048).toString('base64')

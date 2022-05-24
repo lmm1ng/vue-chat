@@ -72,7 +72,6 @@ class ChatController {
         try {
             const dbUser = await User.findOne({_id: req.user.id})
             const chats = []
-            console.log(dbUser.chats)
             for (const chat of dbUser.chats) {
                 const dbChat = await Chat.findOne({
                     _id: chat
@@ -87,8 +86,7 @@ class ChatController {
                     id: chat._id,
                     members: chat.members.map(member => ({
                         id: member.ref.id,
-                        nickname: member.ref.nickname,
-                        hasKey: member.deviceId !== 'notSelected'
+                        nickname: member.ref.nickname
                     })),
                     messages: chat.messages.map(message => ({
                         id: message._id,

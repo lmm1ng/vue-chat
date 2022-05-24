@@ -67,10 +67,6 @@ socket.on('user leaved', data => {
 socket.on('receive message', data => {
   insertMessage(data)
 })
-
-socket.on('chat online users', data => {
-  console.log(data)
-})
 </script>
 
 <style lang="scss">

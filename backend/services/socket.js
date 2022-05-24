@@ -32,9 +32,18 @@ const initSocket = server => {
             const clientsInRoom = await io.in(`chat:${chat._id}`).fetchSockets()
             socket.emit('chat online users', {
                 chatId: chat._id,
-                users: clientsInRoom.map(el => el.userId).filter(userId => userId !== socket.userId)
+                users: clientsInRoom.map(el => ({
+                    id: el.userId,
+                    thisDevice: chat.members.find(member => member.ref.toString() === el.userId)?.deviceId === el.deviceId
+                }))
             })
-            socket.to(`chat:${chat._id}`).emit('user joined', {chatId: chat._id, userId: socket.userId})
+            socket.to(`chat:${chat._id}`).emit('user joined', {
+                chatId: chat._id,
+                user: {
+                    id: socket.userId,
+                    thisDevice: chat.members.find(member => member.ref.toString() === socket.userId)?.deviceId === socket.deviceId
+                }
+            })
         }
 
         socket.on('disconnecting', () => {
@@ -46,6 +55,31 @@ const initSocket = server => {
                     })
                 }
             })
+        })
+        socket.on('start diffie exchange', async data => {
+            const members = await io.in(`chat:${data.chatId}`).fetchSockets()
+            const withWhom = members.find(member => member.userId === data.to)
+            if (withWhom) {
+                withWhom.emit('request to exchange diffie', {
+                    chatId: data.chatId,
+                    from: data.from,
+                    prime: data.prime,
+                    generator: data.generator,
+                    pub: data.pub
+                })
+            }
+        })
+        socket.on('send diffie public to admin', async data => {
+            const members = await io.in(`chat:${data.chatId}`).fetchSockets()
+            const admin = members.find(member => member.userId === data.to)
+            if (admin) {
+                admin.emit('send public from member', {
+                    chatId: data.chatId,
+                    from: data.from,
+                    to: data.to,
+                    pub: data.pub
+                })
+            }
         })
         socket.on('send message', async data => {
             const message = new Message({...data, createdAt: new Date()})

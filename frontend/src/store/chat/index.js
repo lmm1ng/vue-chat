@@ -23,7 +23,8 @@ export default {
         }),
         getActiveChat: (state, getters) => getters['getUserChats'].find(chat => chat.id === state.activeChatId),
         getActiveChatId: state => state.activeChatId,
-        isUserOnline: state => (chatId, userId) => state.onlineUsers[chatId].has(userId),
+        isUserOnline: state => (chatId, userId) => Boolean(state.onlineUsers[chatId].find(user => user.id === userId)),
+        isUserOnlineThisDevice: state => (chatId, userId) => Boolean(state.onlineUsers[chatId].find(user => user.id === userId && user.thisDevice)),
     },
     actions: {
         fetchCreateChat({commit}, requestData) {
@@ -47,13 +48,15 @@ export default {
             chat.messages.unshift(payload)
         },
         setOnlineUsers(state, payload) {
-            state.onlineUsers[payload.chatId] = new Set(payload.users)
+            state.onlineUsers[payload.chatId] = payload.users
         },
         addOnlineUser(state, payload) {
-            state.onlineUsers[payload.chatId].add(payload.userId)
+            if (state.onlineUsers[payload.chatId].find(user => user.id !== payload.user.id)) {
+                state.onlineUsers[payload.chatId].push(payload.user)
+            }
         },
         removeOnlineUser(state, payload) {
-            state.onlineUsers[payload.chatId].delete(payload.userId)
+            state.onlineUsers[payload.chatId] = state.onlineUsers[payload.chatId].filter(user => user.id !== payload.userId)
         }
     }
 }
